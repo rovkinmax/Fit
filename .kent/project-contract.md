@@ -12,6 +12,39 @@ interaction or layout behavior. UI changes also require task-specific browser
 checks and deterministic regression tests for changed logic, with actual
 evidence recorded before PR delivery.
 
+## Ready Lite and retained compatibility routes
+
+This source proposal does not select or install a Workflow. Only a native Task
+actually selecting the new Engineering Lite Workflow uses
+`.kent/context/engineering-lite.md`, `.kent/commands/delivery-lite.md` and
+`.kent/commands/cleanup-lite.md`. Its independent native Plan Review is the
+acceptance owner for the exact immutable R2 `plan_ref`; ordinary publication
+is not acceptance. Real native review result and exact immutable plan/candidate
+identities flow through normal transitions; material replan requires fresh
+review. Agents never call Script-only `accept-plan` or `prepare-report-only`.
+No legacy accepted-head/cache, ledger, checkpoint or Janitor is selected.
+Follow the installed skill's durable-context reference for the ordinary R2 API.
+
+Existing Fit Canary/Delivery and FIT-1 retain their selected old graph, context,
+profile, helper and procedure contracts. The lifecycle, Script acceptance,
+cache and qualification obligations below apply only to that compatibility
+route, not new Lite Tasks. Preserve FIT-1's sealed proof and accepted snapshot;
+separate recovery compatibility/approval is required. New Lite neither migrates
+FIT-1 nor repairs old Janitor.
+
+Fit already has an ordinary R2 binding/receipt and native FIT-1. Preserve them;
+do not rerun the fresh zero-Task installer, import legacy data, fabricate
+identity or fall back to `.todo`. The bootstrap/proposed-deployment passages
+below are retained historical compatibility instructions, not permission to
+replace the existing registration or restart installation.
+
+For new Lite qualification, prove actual immutable R2 publication/CAS,
+independent native Plan Review, continuation, verification, checked PR/CI,
+separately human-authorized merge and qualified Agent Cleanup, including
+interruption/unknown-effect settlement, before promotion or feature execution.
+Offline tests do not establish runtime readiness. Old profile command mappings
+remain intact and do not select the new route.
+
 ## R2-only durable documents
 
 Read the active context manifest first. Native storage must resolve to R2
