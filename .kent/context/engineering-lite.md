@@ -8,8 +8,15 @@ Required at every stage:
 
 For Plan, Plan Review, Implement, Verification and Candidate Review, load the
 installed skill's `references/durable-context.md` and only relevant product
-sources. Fit is a static HTML/CSS/JavaScript site. Run
-`python3 tools/verify_site.py` for structural verification. Changed UI behavior
+sources. Fit is a static HTML/CSS/JavaScript site.
+
+Implement and Verification own execution of `python3 tools/verify_site.py`
+and task-specific checks. Plan may inspect the verifier and define checks;
+Plan Review and Candidate Review inspect source and actual verification
+results read-only. Reviewers never execute artifact-producing checks,
+including this verifier's fixture-writing unittest suite.
+
+The verifier provides structural checks only. Changed UI behavior
 also needs real browser checks and deterministic regression tests for changed
 logic; structural checks do not prove browser behavior. Record failed and
 unavailable checks honestly against exact candidate commit and tree.
