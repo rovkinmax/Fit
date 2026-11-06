@@ -18,8 +18,10 @@ const chromePath = process.env.CHROME_PATH || '/Applications/Google Chrome.app/C
 let mode = 'hold';
 let pending = [];
 let failedSources = new Set();
+let mediaRequests = 0;
 const server = createServer(async (request, response) => {
   const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+  if (path.startsWith('/assets-')) mediaRequests++;
   const send = async () => {
     if (response.destroyed) return;
     if (mode === 'error' && failedSources.has(path.slice(1))) {
@@ -95,7 +97,8 @@ try {
   await new Promise((r, j) => { socket.onopen = r; socket.onerror = j; });
   socket.onmessage = ({ data }) => {
     const message = JSON.parse(data);
-    if (message.method === 'Network.requestServedFromCache') {
+    if (message.method === 'Network.requestServedFromCache' ||
+        (message.method === 'Network.responseReceived' && message.params.response.fromDiskCache)) {
       cacheHits.set(message.sessionId, (cacheHits.get(message.sessionId) || 0) + 1);
     }
     const call = calls.get(message.id);
@@ -237,7 +240,9 @@ try {
         await c('Network.setCacheDisabled', { cacheDisabled: false });
         // First warm with caching enabled, then actually revisit cached media.
         const url = `${origin}/?cached=${width}#day-1`;
+        const requestsPerVisit = [];
         for (let visit = 0; visit < 2; visit++) {
+          const requestsBefore = mediaRequests;
           await c('Page.navigate', { url });
           await waitFor(() => evaluate(`document.readyState !== 'loading' && !!document.querySelector('#panel-day-1.active')`), 'cached day DOM');
           await evaluate(`document.documentElement.style.scrollBehavior='auto'`);
@@ -247,9 +252,11 @@ try {
           }
           const cached = await evaluate(snapshot);
           assert.ok(cached.every(image => image.state === 'loaded' && image.natural[0] > 0));
+          requestsPerVisit.push(mediaRequests - requestsBefore);
         }
-        assert.ok(cacheHits.get(sessionId) > 0, 'Real network cache reuse observed');
-        report.cached = [...(report.cached || []), { width, hits: cacheHits.get(sessionId), result: 'PASS' }];
+        report.cached = [...(report.cached || []), { width, hits: cacheHits.get(sessionId) || 0, requestsPerVisit }];
+        assert.ok(cacheHits.get(sessionId) > 0 || requestsPerVisit[1] === 0, 'Real network cache reuse observed');
+        report.cached.at(-1).result = 'PASS';
       }
       await command('Target.disposeBrowserContext', { browserContextId });
     }
