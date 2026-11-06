@@ -1,0 +1,95 @@
+schema_version = 3
+minimum_kent_version = "2.7.2"
+project_name = "Fit"
+workflow_prefix = "Fit"
+delivery_profile = "lite"
+platforms = ["web"]
+required_adapters = []
+kit_managed_adapters = []
+source_control = "github"
+issue_tracker = "none"
+release_topology = "none"
+
+[execution]
+default_target = "default-branch"
+
+[execution.overrides]
+canary = "head"
+
+[policies]
+smoke = "disabled"
+writer_sessions = "continuous"
+coder_selection = "disabled"
+pr_merge_strategy = "auto"
+branch_identity = "task"
+delivery_reliability = "v1"
+
+# PROPOSED deployment identity; requires explicit human approval before use.
+# The native project ID is observed, not authorization to allocate this store.
+[project_memory]
+root = "/Users/rovkinmax/dev/R2"
+project_key = "fit"
+project_uid = "project-6bf1953d-2c4f-4c04-9486-0cb949b795f8"
+mode = "r2"
+
+[capabilities]
+managed_worktrees = true
+pull_requests = true
+ci_monitoring = true
+standards_review = true
+compliance_review = false
+spec_review = false
+
+[commands]
+dispatch = ".kent/scripts/workflow-verification-dispatch"
+verify = ".kent/scripts/workflow-verify-report"
+compile_verify = ".kent/scripts/workflow-compile-verify"
+checkpoint = ".kent/scripts/workflow-checkpoint"
+evidence = ".kent/scripts/workflow-evidence-ledger"
+plan_contract = ".kent/scripts/workflow-plan-contract"
+plan_contract_accept = ".kent/scripts/workflow-plan-contract-accept"
+plan_contract_continue = ".kent/scripts/workflow-plan-contract-continue"
+plan_contract_verify = ".kent/scripts/workflow-plan-contract-verify"
+plan_contract_fix_continue = ".kent/scripts/workflow-plan-contract-fix-continue"
+runtime_contracts = ".kent/scripts/workflow_runtime_contracts.py"
+github_observation = ".kent/scripts/workflow_github_observation.py"
+wait_pr = ".kent/scripts/workflow-wait-github-pr"
+wait_ci = ".kent/scripts/workflow-wait-github-ci"
+janitor = ".kent/scripts/workflow-task-janitor"
+project_memory = ".kent/scripts/workflow-project-memory"
+project_memory_core = ".kent/scripts/workflow_project_memory.py"
+
+[context_manifests]
+plan = ".kent/context/plan.md"
+implement = ".kent/context/implement.md"
+review = ".kent/context/review.md"
+smoke = ".kent/context/smoke.md"
+delivery = ".kent/context/delivery.md"
+
+[procedures]
+fix = ".kent/commands/fix.md"
+ship = ".kent/commands/ship-pr.md"
+ci = ".kent/commands/ci.md"
+waiting_pr = ".kent/commands/waiting-pr.md"
+cleanup = ".kent/commands/cleanup-task.md"
+
+[work_kinds.feature]
+description = "Implement an approved Fit site change."
+plan = ".kent/commands/feature-start.md"
+implement = ".kent/commands/feature-implement.md"
+
+[work_kinds.bugfix]
+description = "Fix a reproduced Fit site defect."
+plan = ".kent/commands/feature-start.md"
+implement = ".kent/commands/feature-implement.md"
+
+[roles]
+orchestrator = "default"
+plan_review = "spec-reviewer"
+gate = "workflow-gate"
+researcher = "researcher"
+implementation = "implementation-worker"
+fix = "fix-worker"
+standards_review = "standards-reviewer"
+release = "delivery-operator"
+ci = "ci-monitor"
