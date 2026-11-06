@@ -515,4 +515,29 @@
           <figure class="exercise-media"><img src="assets-fixed-v3/День 2_files-84b17664868f55d1cf8a63392c384062.webp" alt="84b17664868f55d1cf8a63392c384062.gif" loading="lazy" width="700" height="394"></figure>
       </article>
     </section>
-</main><script src="tabs.js"></script></body></html>
+</main>
+<aside id="rest-timer" aria-label="Rest timer">
+  <div class="timer-controls">
+    <span class="timer-title">Rest</span>
+    <button type="button" data-time aria-label="Edit rest duration">1:00</button>
+    <button type="button" data-toggle>Start</button>
+    <button type="button" data-reset>Reset</button>
+    <button type="button" data-adjust="-15" aria-label="Decrease duration by 15 seconds">−15</button>
+    <button type="button" data-adjust="15" aria-label="Increase duration by 15 seconds">+15</button>
+    <button type="button" data-mute aria-label="Mute completion sound" aria-pressed="false">Sound on</button>
+  </div>
+  <div role="status" aria-live="polite" aria-atomic="true"></div>
+  <form hidden novalidate>
+    <label for="rest-duration">Duration (m:ss, up to 1440:00)</label>
+    <div class="timer-editor">
+      <input id="rest-duration" type="text" inputmode="text" autocomplete="off" aria-describedby="rest-error">
+      <button type="submit">Apply</button>
+      <button type="button" data-cancel>Cancel</button>
+    </div>
+    <div id="rest-error" data-error role="alert"></div>
+  </form>
+</aside>
+<script src="tabs.js"></script>
+<script src="timer-model.js"></script>
+<script src="timer.js"></script>
+</body></html>
