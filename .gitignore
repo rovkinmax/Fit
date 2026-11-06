@@ -3,3 +3,9 @@
 *.xlsx
 /index.fixed-v2 2.html
 /assets-fixed-v3/*.gif
+/.kent/runtime/
+/.kent/retained-evidence/
+/.kent/workflows/
+/build/kent-workflow/
+__pycache__/
+*.pyc

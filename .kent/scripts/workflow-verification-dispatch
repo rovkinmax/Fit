@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import importlib.util
+import importlib.machinery
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tomllib
+from typing import Any
+
+sys.dont_write_bytecode = True
+
+
+MAX_DISPATCH_INPUT_BYTES = 1024 * 1024
+
+
+def delivery_context_field(payload: dict[str, Any]) -> str | None:
+    if "delivery_context" not in payload:
+        return None
+    support = Path(__file__).with_name("workflow_runtime_contracts.py")
+    if support.is_symlink() or not support.is_file():
+        raise ValueError(
+            "workflow_runtime_contracts.py support module is unsafe"
+        )
+    spec = importlib.util.spec_from_file_location(
+        "workflow_dispatch_runtime_contracts",
+        support,
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("workflow runtime support module cannot be loaded")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    fields = module.delivery_context_fields(payload)
+    return fields["delivery_context"]
+
+
+def canonical_directory(value: str) -> str:
+    path = Path(value).expanduser().resolve(strict=True)
+    return str(path) if path.is_dir() else ""
+
+
+def git_root(value: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", value, "rev-parse", "--show-toplevel"],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if result.returncode != 0:
+        return ""
+    return canonical_directory(result.stdout.strip())
+
+
+def main() -> int:
+    raw = sys.stdin.buffer.read(MAX_DISPATCH_INPUT_BYTES + 1)
+    if len(raw) > MAX_DISPATCH_INPUT_BYTES:
+        raise ValueError("workflow input exceeds its byte limit")
+
+    def reject_duplicate_keys(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, item in items:
+            if key in result:
+                raise ValueError("workflow input contains a duplicate object key")
+            result[key] = item
+        return result
+
+    payload = json.loads(
+        raw,
+        object_pairs_hook=reject_duplicate_keys,
+        parse_constant=lambda value: (_ for _ in ()).throw(
+            ValueError(f"workflow input contains invalid JSON constant {value}")
+        ),
+    )
+    if not isinstance(payload, dict):
+        raise ValueError("workflow input must be one JSON object")
+    workspace_path = payload.get("workspace_path")
+    review_context = payload.get("review_context")
+    if not isinstance(workspace_path, str) or not workspace_path:
+        raise ValueError("workspace_path must be a non-empty string")
+    if not isinstance(review_context, str) or not review_context:
+        raise ValueError("review_context must be a non-empty string")
+    delivery_context = delivery_context_field(payload)
+
+    execution_root = git_root(os.getcwd()) or canonical_directory(os.getcwd())
+    profile_path = Path(execution_root) / ".kent/workflow-profile.toml"
+    profile = tomllib.loads(profile_path.read_text()) if profile_path.is_file() else {}
+    policies = profile.get("policies", {})
+    if not isinstance(policies, dict):
+        raise ValueError("invalid workflow policy table")
+    delivery_reliability_policy = policies.get("delivery_reliability")
+    reported_root = ""
+    try:
+        reported_root = canonical_directory(workspace_path)
+    except (OSError, RuntimeError, ValueError):
+        pass
+    reported_git_root = git_root(workspace_path) or reported_root
+
+    if (
+        not reported_root
+        or reported_root != reported_git_root
+        or reported_root != execution_root
+    ):
+        output: dict[str, str] = {
+            "transition": "verification_dispatch_invalid_workspace",
+            "commentary": "Rejected a non-root or foreign workspace path.",
+            "reported_workspace_path": workspace_path,
+            "fix_context": (
+                "workspace_path must equal the canonical task execution root: "
+                f"{execution_root}"
+            ),
+        }
+        if delivery_reliability_policy == "v1":
+            output["workspace_path"] = execution_root
+    else:
+        output = {
+            "transition": "verification_dispatch_fanout_verify",
+            "commentary": (
+                "Starting deterministic and independent read-only verification."
+            ),
+            "workspace_path": execution_root,
+            "review_context": review_context,
+        }
+    if delivery_context is not None:
+        output["delivery_context"] = delivery_context
+    encoded = (json.dumps(output, ensure_ascii=False) + "\n").encode("utf-8")
+    if delivery_reliability_policy is not None:
+        source = Path(__file__).with_name("workflow-checkpoint")
+        if source.is_symlink() or not source.is_file():
+            raise ValueError("qualified producer adapter is unavailable")
+        loader = importlib.machinery.SourceFileLoader("dispatch_producer_adapter", str(source))
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        if spec is None:
+            raise ValueError("producer adapter cannot be loaded")
+        adapter = importlib.util.module_from_spec(spec)
+        loader.exec_module(adapter)
+        encoded = adapter.emit_producer_result(
+            Path(execution_root), payload, encoded, "verification-dispatch")
+    sys.stdout.buffer.write(encoded)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as error:
+        print(f"workflow-verification-dispatch: {error}", file=sys.stderr)
+        raise SystemExit(2)

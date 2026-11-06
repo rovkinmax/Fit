@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""Translate standalone product verification into the Kit child protocol."""
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+
+def main():
+    try:
+        raw = sys.stdin.buffer.read(1048577)
+        if len(raw) > 1048576 or not isinstance(json.loads(raw), dict):
+            raise ValueError("expected one bounded JSON object")
+    except (ValueError, UnicodeError) as error:
+        print(f"Invalid verification input: {error}", file=sys.stderr)
+        return "blocked"
+
+    # The parent invokes this adapter by descriptor; cwd identifies the worktree.
+    verifier = Path("tools/verify_site.py")
+    python = shutil.which("python3")
+    if python is None or not verifier.is_file() or verifier.is_symlink():
+        print("Checkout-local tools/verify_site.py and python3 are required.",
+              file=sys.stderr)
+        return "blocked"
+    try:
+        result = subprocess.run(
+            [python, str(verifier)],
+            stdin=subprocess.DEVNULL,
+            stdout=sys.stderr,
+            stderr=sys.stderr,
+            check=False,
+        )
+    except OSError as error:
+        print(f"Product verification could not start: {error}", file=sys.stderr)
+        return "blocked"
+    if result.returncode != 0:
+        print(f"Product verification exited with status {result.returncode}.",
+              file=sys.stderr)
+        return "failed"
+    return "passed"
+
+
+if __name__ == "__main__":
+    print(json.dumps({"transition": main()}))
