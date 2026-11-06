@@ -73,7 +73,9 @@ body {
 .alternative-title { width: fit-content; margin-top: 20px; padding: 6px 10px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-weight: 800; }
 .exercise-media { margin: 16px auto 22px; max-width: 760px; text-align: center; }
 /* Preserve the original illustration colors, including transparent GIF backgrounds. */
-.exercise-media img { display: block; max-width: 100%; height: auto; margin: 0 auto; border-radius: 14px; border: 1px solid var(--border); background: #fff; }
+/* Attributes describe the content canvas; borders must not change its ratio. */
+.exercise-media img { display: block; box-sizing: content-box; max-width: calc(100% - 2px); height: auto; margin: 0 auto; border-radius: 14px; border: 1px solid var(--border); background: #fff; }
+.exercise-media img:not([data-media-state="loaded"]) { background: var(--accent-soft); color: var(--muted); }
 hr { max-width: 880px; margin: 24px auto; border: 0; border-top: 1px solid var(--border); }
 
 @media (max-width: 720px) {
